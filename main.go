@@ -7,31 +7,52 @@ import (
 )
 
 func main() {
+	fmt.Println("Executing pre-commit hook")
 
-	php()
-	js()
+	phpChan := make(chan int)
+	jsChan := make(chan int)
 
+
+	go php(phpChan)
+	go js(jsChan)
+
+	php := <-phpChan
+	fmt.Println("Status of php", php)
+
+	js := <-jsChan
+	fmt.Println("Status of JS", js)
 }
 
 
-func executor(cmd string) string {
-	out, err := exec.Command("cmd", "/C", cmd).Output()
+func executor(cmd string) int {
+	fmt.Println("Executing", cmd)
+	_, err := exec.Command("cmd", "/C", cmd).Output()
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+		return 1
 	}
 
-	return string(out)
+	return 0
 }
 
-func php() {
+func php(c chan int) int {
+	fmt.Println("Executing php")
 	executor("composer cs-check")
 	executor("composer test")
+
+
+	c <- 1
+	
+	return 1
 }
 
-func js() {
+func js(c chan int) {
+	fmt.Println("Executing js")
 	executor("npm run lint")
 	executor("npx stylelint 'src/**/*.scss'")
 	executor("npm run test")
+	
+	c <- 1
 }
