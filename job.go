@@ -1,28 +1,60 @@
 package main
 
+import (
+	"os/exec"
+	"sync"
+)
+
 type JobParams struct {
 	Title string
-	Type  string
 	Cwd   string
 	Cmd   string
+	Args  []string
 }
 
 type Job struct {
-	Params   JobParams
+	Params   *JobParams
 	Status   bool
 	Output   string
 	ExitCode int
+	emitter  *Emitter
 }
 
-func (job *Job) New(params JobParams) Job {
+func NewJob(params *JobParams, emitter *Emitter) *Job {
+	job := &Job{}
+
 	job.Params = params
 	job.Status = false
 	job.Output = ""
 	job.ExitCode = 0
+	job.emitter = emitter
 
-	return *job
+	return job
 }
 
-func (job *Job) Dispath() {
+func (job *Job) Dispath(i int, wg *sync.WaitGroup) {
 	// TODO: Execute the cmd and emit an event
+	cmd := exec.Command(job.Params.Cmd, job.Params.Args...)
+	cmd.Dir = job.Params.Cwd
+
+	out, err := cmd.Output()
+
+	job.ExitCode = cmd.ProcessState.ExitCode()
+
+	if err != nil {
+		job.Status = false
+		job.Output = err.Error()
+
+		job.emitter.Emit("failed", job, i)
+	} else {
+
+		job.Output = string(out)
+		job.Status = true
+
+		job.emitter.Emit("success", job, i)
+	}
+
+	job.emitter.Emit("complete", job, i)
+
+	wg.Done()
 }
