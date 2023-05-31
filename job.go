@@ -3,6 +3,7 @@ package main
 import (
 	"os/exec"
 	"sync"
+	"time"
 )
 
 type JobParams struct {
@@ -13,11 +14,12 @@ type JobParams struct {
 }
 
 type Job struct {
-	Params   *JobParams
-	Status   bool
-	Output   string
-	ExitCode int
-	emitter  *Emitter
+	Params      *JobParams
+	Status      bool
+	Output      string
+	isCompleted bool
+	ExitCode    int
+	emitter     *Emitter
 }
 
 func NewJob(params *JobParams, emitter *Emitter) *Job {
@@ -28,11 +30,14 @@ func NewJob(params *JobParams, emitter *Emitter) *Job {
 	job.Output = ""
 	job.ExitCode = 0
 	job.emitter = emitter
+	job.isCompleted = false
 
 	return job
 }
 
 func (job *Job) Dispath(i int, wg *sync.WaitGroup) {
+	time.Sleep(time.Second * 3)
+
 	// TODO: Execute the cmd and emit an event
 	cmd := exec.Command(job.Params.Cmd, job.Params.Args...)
 	cmd.Dir = job.Params.Cwd
@@ -53,6 +58,8 @@ func (job *Job) Dispath(i int, wg *sync.WaitGroup) {
 
 		job.emitter.Emit("success", job, i)
 	}
+
+	job.isCompleted = true
 
 	job.emitter.Emit("complete", job, i)
 
