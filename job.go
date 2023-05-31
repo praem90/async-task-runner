@@ -3,7 +3,6 @@ package main
 import (
 	"os/exec"
 	"sync"
-	"time"
 )
 
 type JobParams struct {
@@ -36,8 +35,6 @@ func NewJob(params *JobParams, emitter *Emitter) *Job {
 }
 
 func (job *Job) Dispath(i int, wg *sync.WaitGroup) {
-	time.Sleep(time.Second * 3)
-
 	// TODO: Execute the cmd and emit an event
 	cmd := exec.Command(job.Params.Cmd, job.Params.Args...)
 	cmd.Dir = job.Params.Cwd
